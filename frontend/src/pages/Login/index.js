@@ -4,8 +4,9 @@ import SignButtom from "../../components/SignButton";
 import InvalidityMsg from "../../components/InvalidityMsg";
 import "./styles.css";
 import { validateEmail, validatePassword } from "../../util/validation";
+import api from "../../service";
 
-const Login = () => {
+const Login = (props) => {
   // criando os estados
   const [email, setEmail] = useState({ value: "", invalidity: "" });
   const [password, setPassword] = useState({ value: "", invalidity: "" });
@@ -13,7 +14,7 @@ const Login = () => {
   // funcoes para mudar os estados
   const changeEmail = (e) => {
     const value = e.target.value;
-    
+
     setEmail({ ...email, value });
     // como email eh um objeto { value: '', indalidity: '' },
     // vamos clonar as propriedades do objeto usando o operador spread { ...email },
@@ -38,7 +39,34 @@ const Login = () => {
 
   const submit = () => {
     if (validateForm()) {
-      // jajá
+      // requisicao
+      api
+        .post(
+          "/user/signIn",
+          { email: email.value, password: password.value },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+        .then((response) => {
+          const token = response.data.token;
+          // salvando o token do usuario no localStorage
+          localStorage.setItem("token", token);
+          // salvando os dados do usuario
+          localStorage.setItem("user", JSON.stringify(response));
+          // redirecionando para tela Home
+          props.history.push("/home");
+        })
+        .catch((error) => {
+          console.log(error.response);
+          const msg = error.response.data;
+
+          // exibindo mensagem de erro que o backend retorna
+          if (msg.indexOf("Email não cadastrado") !== -1)
+            setEmail({ ...email, invalidity: "Email não cadastrado" });
+          else if (msg === "Senha inválida")
+            setPassword({ ...password, invalidity: msg });
+        });
     }
   };
 
